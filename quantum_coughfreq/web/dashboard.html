@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quantum Cough Classifier</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="hero">
+        <div class="hero-topline">
+          <span class="topline-pill">Hybrid QML</span>
+          <span class="topline-pill">FastAPI Dashboard</span>
+          <span class="topline-pill">TB Screening</span>
+        </div>
+        <div class="hero-status">
+          <div class="status-chip">
+            <span>Model</span>
+            <strong>Qiskit 4Q</strong>
+          </div>
+          <div class="status-chip">
+            <span>Risk Engine</span>
+            <strong id="heroRiskLabel">Ready</strong>
+          </div>
+        </div>
+        <h1>Quantum Cough Classifier</h1>
+        <p class="hero-subtitle">
+          Audio to waveform, MFCC, Mel spectrum, quantum state, TB risk, and dataset screening in one dashboard.
+        </p>
+      </header>
+
+      <section class="pipeline-strip panel">
+        <div class="pipeline-node active">
+          <span class="node-icon">1</span>
+          <strong>Ingest</strong>
+          <small>Upload</small>
+        </div>
+        <div class="pipeline-link"></div>
+        <div class="pipeline-node active">
+          <span class="node-icon">2</span>
+          <strong>Wave</strong>
+          <small>Decode</small>
+        </div>
+        <div class="pipeline-link"></div>
+        <div class="pipeline-node active">
+          <span class="node-icon">3</span>
+          <strong>MFCC</strong>
+          <small>Features</small>
+        </div>
+        <div class="pipeline-link"></div>
+        <div class="pipeline-node active">
+          <span class="node-icon">4</span>
+          <strong>QML</strong>
+          <small>Encode</small>
+        </div>
+        <div class="pipeline-link"></div>
+        <div class="pipeline-node active">
+          <span class="node-icon">5</span>
+          <strong>Predict</strong>
+          <small>Classify</small>
+        </div>
+      </section>
+
+      <main class="dashboard-grid">
+        <section class="side-column">
+          <div class="panel upload-panel">
+            <div class="panel-head">
+              <h2>Audio Input</h2>
+              <span class="panel-tag">Live</span>
+            </div>
+            <label class="file-picker">
+              <input id="audioInput" type="file" accept=".wav,.ogg,.webm,.mp3,.flac,.m4a,audio/*" />
+              <span>Select cough audio</span>
+            </label>
+            <div class="audio-meta">
+              <div>
+                <span class="meta-label">File</span>
+                <strong id="fileName">No file selected</strong>
+              </div>
+              <div class="meta-grid">
+                <div>
+                  <span class="meta-label">Duration</span>
+                  <strong id="fileDuration">0.00s</strong>
+                </div>
+                <div>
+                  <span class="meta-label">Sample rate</span>
+                  <strong id="fileSampleRate">0 Hz</strong>
+                </div>
+              </div>
+            </div>
+            <canvas id="waveformCanvas" class="waveform-canvas" width="420" height="120"></canvas>
+            <audio id="audioPlayer" controls></audio>
+            <button id="analyzeButton" class="primary-button">Start Quantum Analysis</button>
+          </div>
+
+          <div class="panel result-panel">
+            <div class="result-header">
+              <span id="resultBadge" class="result-badge result-neutral">Waiting</span>
+              <strong id="confidenceValue">0.00%</strong>
+            </div>
+            <div class="result-meta">
+              <div>
+                <span class="meta-label">TB Probability</span>
+                <strong id="tbProbabilityValue">0.0000</strong>
+              </div>
+              <div>
+                <span class="meta-label">Acoustic Signature</span>
+                <strong id="signatureValue">None</strong>
+              </div>
+            </div>
+            <div id="classBars" class="class-bars"></div>
+          </div>
+
+          <div class="panel log-panel">
+            <div class="panel-head">
+              <h2>Pipeline Log</h2>
+              <span class="panel-tag">Trace</span>
+            </div>
+            <ul id="pipelineLog" class="pipeline-log"></ul>
+          </div>
+        </section>
+
+        <section class="panel sphere-panel">
+          <div class="panel-head">
+            <h2>3D Audio Sphere</h2>
+            <span class="panel-tag">Quantum Field</span>
+          </div>
+          <canvas id="sphereCanvas" width="520" height="360"></canvas>
+          <div class="sphere-caption">
+            <span>Radius tracks confidence, glow tracks TB risk, orbit reflects encoded acoustic energy.</span>
+          </div>
+        </section>
+
+        <section class="panel spectrogram-panel">
+          <div class="panel-head">
+            <h2>Spectral View</h2>
+            <div class="tab-row">
+              <button class="tab-button active" data-tab="mel">Mel Spectrogram</button>
+              <button class="tab-button" data-tab="psd">Freq Bars</button>
+              <button class="tab-button" data-tab="mfcc">MFCC Heatmap</button>
+            </div>
+          </div>
+          <canvas id="spectrogramCanvas" width="720" height="360"></canvas>
+          <div id="spectrogramLegend" class="spectrogram-legend"></div>
+        </section>
+
+        <section class="panel circuit-panel">
+          <div class="panel-head">
+            <h2>Variational Quantum Circuit</h2>
+            <span id="circuitMeta" class="panel-tag">4 Qubits</span>
+          </div>
+          <div id="circuitGrid" class="circuit-grid"></div>
+        </section>
+
+        <section class="panel latent-panel">
+          <div class="panel-head">
+            <h2>Quantum Latent Space</h2>
+            <span class="panel-tag">PCA-style View</span>
+          </div>
+          <canvas id="latentCanvas" width="720" height="280"></canvas>
+          <div class="latent-caption">Reference clouds show Viral, Bacterial, and TB zones. The bright point marks the current sample.</div>
+        </section>
+
+        <section class="panel dataset-panel">
+          <div class="panel-head">
+            <h2>Dataset Screening</h2>
+            <span class="panel-tag">Folder Scan</span>
+          </div>
+          <div class="dataset-controls">
+            <input id="datasetPathInput" type="text" placeholder="Enter dataset folder path" />
+            <input id="datasetMaxFilesInput" type="number" min="1" placeholder="Optional max files" />
+            <button id="datasetAnalyzeButton" class="secondary-button">Analyze Folder</button>
+          </div>
+          <div id="datasetSummaryCards" class="summary-cards"></div>
+          <div class="dataset-lists">
+            <div>
+              <h3>Top TB Risk Files</h3>
+              <ul id="topRiskList" class="dataset-list"></ul>
+            </div>
+            <div>
+              <h3>Skipped Files</h3>
+              <ul id="skippedList" class="dataset-list"></ul>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>

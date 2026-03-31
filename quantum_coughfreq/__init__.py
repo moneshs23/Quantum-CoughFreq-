@@ -1,0 +1,2 @@
+"""Quantum CoughFreq package."""
+
