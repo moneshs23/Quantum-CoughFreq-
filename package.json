@@ -1,0 +1,9 @@
+{
+  "name": "qml-project",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "python main.py serve --port 8011",
+    "start": "python main.py serve --port 8011"
+  }
+}
