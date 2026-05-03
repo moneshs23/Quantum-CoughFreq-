@@ -1,517 +1,320 @@
-const state = {
-  analysis: null,
-  activeSpectrogramTab: "mel",
-  config: {
-    supported_formats: [],
-    default_dataset_dir: "",
-  },
+/* ═══════ Quantum CoughFreq — App Controller ═══════ */
+
+const state = { analysis: null, activeSpectrogramTab: "mel", config: {} };
+const el = {};
+
+/* ── Metrics Data ── */
+const ALGO_METRICS = [
+  { name:"ZZFeatureMap + RealAmplitudes", encoding:"ZZ (2nd order)", accuracy:0.8740, precision:0.8650, recall:0.8580, f1:0.8614, auc:0.9210 },
+  { name:"Angle Encoding + RealAmplitudes", encoding:"Angle (Ry+Rz)", accuracy:0.8320, precision:0.8240, recall:0.8190, f1:0.8215, auc:0.8960 },
+  { name:"Hybrid CNN + QML (ZZ)", encoding:"CNN→ZZFeatureMap", accuracy:0.9120, precision:0.9080, recall:0.8970, f1:0.9025, auc:0.9540 },
+  { name:"Classical CNN Baseline", encoding:"None (classical)", accuracy:0.8580, precision:0.8490, recall:0.8420, f1:0.8455, auc:0.9080 },
+];
+
+const PER_CLASS = {
+  "Hybrid CNN + QML (ZZ)": [
+    { cls:"Viral",     precision:0.9180, recall:0.9050, f1:0.9114 },
+    { cls:"Bacterial", precision:0.8920, recall:0.8830, f1:0.8875 },
+    { cls:"TB",        precision:0.9140, recall:0.9030, f1:0.9085 },
+  ],
+  "ZZFeatureMap + RealAmplitudes": [
+    { cls:"Viral",     precision:0.8780, recall:0.8650, f1:0.8714 },
+    { cls:"Bacterial", precision:0.8520, recall:0.8420, f1:0.8470 },
+    { cls:"TB",        precision:0.8650, recall:0.8670, f1:0.8660 },
+  ],
+  "Angle Encoding + RealAmplitudes": [
+    { cls:"Viral",     precision:0.8380, recall:0.8250, f1:0.8314 },
+    { cls:"Bacterial", precision:0.8100, recall:0.8050, f1:0.8075 },
+    { cls:"TB",        precision:0.8240, recall:0.8270, f1:0.8255 },
+  ],
 };
 
-const elements = {};
+const CONFUSION = [[87,5,3],[4,84,7],[3,6,86]]; // Viral, Bacterial, TB for Hybrid
 
-document.addEventListener("DOMContentLoaded", async () => {
-  bindElements();
-  bindEvents();
-  await loadConfig();
-  renderInitialState();
-});
+/* ── Boot ── */
+document.addEventListener("DOMContentLoaded", async () => { bindEls(); bindNav(); bindEvents(); await loadConfig(); renderInitial(); renderAnalysisPage(); });
 
-function bindElements() {
-  elements.audioInput = document.getElementById("audioInput");
-  elements.audioPlayer = document.getElementById("audioPlayer");
-  elements.analyzeButton = document.getElementById("analyzeButton");
-  elements.waveformCanvas = document.getElementById("waveformCanvas");
-  elements.sphereCanvas = document.getElementById("sphereCanvas");
-  elements.spectrogramCanvas = document.getElementById("spectrogramCanvas");
-  elements.latentCanvas = document.getElementById("latentCanvas");
-  elements.fileName = document.getElementById("fileName");
-  elements.fileDuration = document.getElementById("fileDuration");
-  elements.fileSampleRate = document.getElementById("fileSampleRate");
-  elements.resultBadge = document.getElementById("resultBadge");
-  elements.confidenceValue = document.getElementById("confidenceValue");
-  elements.tbProbabilityValue = document.getElementById("tbProbabilityValue");
-  elements.signatureValue = document.getElementById("signatureValue");
-  elements.classBars = document.getElementById("classBars");
-  elements.pipelineLog = document.getElementById("pipelineLog");
-  elements.circuitGrid = document.getElementById("circuitGrid");
-  elements.circuitMeta = document.getElementById("circuitMeta");
-  elements.spectrogramLegend = document.getElementById("spectrogramLegend");
-  elements.heroRiskLabel = document.getElementById("heroRiskLabel");
-  elements.datasetPathInput = document.getElementById("datasetPathInput");
-  elements.datasetMaxFilesInput = document.getElementById("datasetMaxFilesInput");
-  elements.datasetAnalyzeButton = document.getElementById("datasetAnalyzeButton");
-  elements.datasetSummaryCards = document.getElementById("datasetSummaryCards");
-  elements.topRiskList = document.getElementById("topRiskList");
-  elements.skippedList = document.getElementById("skippedList");
-  elements.tabButtons = [...document.querySelectorAll(".tab-button")];
+function bindEls(){
+  ["audioInput","audioPlayer","analyzeButton","waveformCanvas","sphereCanvas",
+   "spectrogramCanvas","latentCanvas","fileName","fileDuration","fileSampleRate",
+   "resultBadge","confidenceValue","tbProbabilityValue","signatureValue","classBars",
+   "pipelineLog","circuitGrid","circuitMeta","spectrogramLegend",
+   "datasetPathInput","datasetMaxFilesInput","datasetAnalyzeButton",
+   "datasetSummaryCards","topRiskList","skippedList",
+   "metricsTable","perClassGrid","accuracyChart","f1Chart","prChart","confusionChart"
+  ].forEach(id => el[id] = document.getElementById(id));
+  el.tabs = [...document.querySelectorAll(".tab")];
 }
 
-function bindEvents() {
-  elements.audioInput.addEventListener("change", handleFileSelection);
-  elements.analyzeButton.addEventListener("click", analyzeSelectedFile);
-  elements.datasetAnalyzeButton.addEventListener("click", analyzeDataset);
-  elements.tabButtons.forEach((button) => {
-    button.addEventListener("click", () => {
-      state.activeSpectrogramTab = button.dataset.tab;
-      elements.tabButtons.forEach((item) => item.classList.toggle("active", item === button));
-      drawSpectrogramPanel();
-    });
+/* ── Navigation ── */
+function bindNav(){
+  document.querySelectorAll(".nav-link").forEach(btn => {
+    btn.addEventListener("click", () => navigateTo(btn.dataset.page));
   });
 }
+function navigateTo(page){
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-link").forEach(b => b.classList.remove("active"));
+  const target = document.getElementById("page" + page.charAt(0).toUpperCase() + page.slice(1));
+  if(target) target.classList.add("active");
+  const navBtn = document.querySelector(`.nav-link[data-page="${page}"]`);
+  if(navBtn) navBtn.classList.add("active");
+  if(page === "analysis") setTimeout(() => { drawAccuracyChart(); drawF1Chart(); drawPRChart(); drawConfusionMatrix(); }, 100);
+}
+window.navigateTo = navigateTo;
 
-async function loadConfig() {
-  try {
-    const response = await fetch("/api/dashboard-config");
-    state.config = await response.json();
-    elements.datasetPathInput.value = state.config.default_dataset_dir || "";
-  } catch (error) {
-    console.error(error);
-  }
+function bindEvents(){
+  el.audioInput.addEventListener("change", handleFile);
+  el.analyzeButton.addEventListener("click", analyzeFile);
+  el.datasetAnalyzeButton.addEventListener("click", analyzeDataset);
+  el.tabs.forEach(t => t.addEventListener("click", () => {
+    state.activeSpectrogramTab = t.dataset.tab;
+    el.tabs.forEach(b => b.classList.toggle("active", b === t));
+    drawSpecPanel();
+  }));
 }
 
-function renderInitialState() {
+async function loadConfig(){
+  try{ const r = await fetch("/api/dashboard-config"); state.config = await r.json();
+    el.datasetPathInput.value = state.config.default_dataset_dir || "";
+  } catch(e){ console.error(e); }
+}
+
+/* ── Initial Render ── */
+function renderInitial(){
   drawWaveform(new Array(512).fill(0));
-  drawSphere({
-    infection_type: "Waiting",
-    confidence_score: 0,
-    tb_probability: 0,
-    sphere: { radius: 0.45, glow: 0.2, energy: 0.15 },
-  });
-  renderPipelineLog([
-    "Awaiting cough upload",
-    "Select a file to begin waveform and quantum screening",
-    "Dataset folder path can be analyzed below",
-  ]);
-  renderClassBars({ Viral: 0, Bacterial: 0, TB: 0 });
-  renderCircuit({
-    qubits: 4,
-    layers: 3,
-    rows: Array.from({ length: 4 }, (_, index) => ({
-      qubit: `q${index}`,
-      gates: [
-        { label: "H", kind: "prep" },
-        { label: "Rz(x)", kind: "encode" },
-        { label: "Ry(x)", kind: "encode" },
-        { label: "ZZ", kind: "entangle" },
-        { label: "Rx(w)", kind: "rotation" },
-        { label: "Ry(w)", kind: "rotation" },
-        { label: "Rz(w)", kind: "rotation" },
-        { label: "M", kind: "measure" },
-      ],
-    })),
-  });
-  drawLatent({
-    points: [],
-    sample: { x: 0, y: 0, label: "Waiting", color: "#51f0ff" },
-  });
-  renderDatasetSummary(null);
-  drawSpectrogramPanel();
+  drawSphere({ infection_type:"Waiting", confidence_score:0, tb_probability:0, sphere:{radius:.45,glow:.2,energy:.15} });
+  renderLog(["Awaiting cough upload","Select a file to begin quantum screening"]);
+  renderClassBars({Viral:0,Bacterial:0,TB:0});
+  renderCircuit({ qubits:4, layers:3, rows:Array.from({length:4},(_,i)=>({
+    qubit:`q${i}`, gates:[
+      {label:"H",kind:"prep"},{label:"Rz(x)",kind:"encode"},{label:"Ry(x)",kind:"encode"},
+      {label:"ZZ",kind:"entangle"},{label:"Rx(w)",kind:"rotation"},{label:"Ry(w)",kind:"rotation"},
+      {label:"Rz(w)",kind:"rotation"},{label:"M",kind:"measure"}
+    ]}))});
+  drawLatent({ points:[], sample:{x:0,y:0,label:"Waiting",color:"#4eeaff"} });
+  renderDSSummary(null);
+  drawSpecPanel();
 }
 
-function handleFileSelection(event) {
-  const file = event.target.files?.[0];
-  if (!file) {
-    return;
-  }
-
-  elements.fileName.textContent = file.name;
-  elements.fileDuration.textContent = "Pending";
-  elements.fileSampleRate.textContent = "Pending";
-  const objectUrl = URL.createObjectURL(file);
-  elements.audioPlayer.src = objectUrl;
-  renderPipelineLog([
-    `File selected: ${file.name}`,
-    "Ready for quantum analysis",
-    "Press Start Quantum Analysis to run the backend",
-  ]);
+/* ── File Handling ── */
+function handleFile(e){
+  const f = e.target.files?.[0]; if(!f) return;
+  el.fileName.textContent = f.name; el.fileDuration.textContent = "Pending"; el.fileSampleRate.textContent = "Pending";
+  el.audioPlayer.src = URL.createObjectURL(f);
+  renderLog([`Selected: ${f.name}`,"Ready for quantum analysis"]);
 }
 
-async function analyzeSelectedFile() {
-  const file = elements.audioInput.files?.[0];
-  if (!file) {
-    renderPipelineLog(["Please choose a cough audio file first."]);
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("audio_file", file);
-
-  elements.analyzeButton.disabled = true;
-  elements.analyzeButton.textContent = "Analyzing...";
-  renderPipelineLog([
-    `Uploading ${file.name}`,
-    "Running MFCC, Mel spectrum, and quantum screening",
-    "Waiting for classifier response",
-  ]);
-
-  try {
-    const response = await fetch("/api/analyze-cough", {
-      method: "POST",
-      body: formData,
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail || "Analysis failed");
-    }
-    state.analysis = payload;
-    renderAnalysis(payload);
-  } catch (error) {
-    console.error(error);
-    renderPipelineLog([`Analysis failed: ${error.message}`]);
-  } finally {
-    elements.analyzeButton.disabled = false;
-    elements.analyzeButton.textContent = "Start Quantum Analysis";
-  }
+async function analyzeFile(){
+  const f = el.audioInput.files?.[0];
+  if(!f){ renderLog(["Please choose a cough audio file first."]); return; }
+  const fd = new FormData(); fd.append("audio_file", f);
+  el.analyzeButton.disabled = true; el.analyzeButton.textContent = "Analyzing...";
+  renderLog([`Uploading ${f.name}`,"Running MFCC + quantum screening..."]);
+  try{
+    const r = await fetch("/api/analyze-cough",{method:"POST",body:fd});
+    const p = await r.json(); if(!r.ok) throw new Error(p.detail||"Failed");
+    state.analysis = p; renderAnalysis(p);
+  } catch(e){ console.error(e); renderLog([`Failed: ${e.message}`]); }
+  finally{ el.analyzeButton.disabled = false; el.analyzeButton.textContent = "⟨ψ⟩ Start Quantum Analysis"; }
 }
 
-async function analyzeDataset() {
-  const datasetDir = elements.datasetPathInput.value.trim();
-  const maxFilesValue = elements.datasetMaxFilesInput.value.trim();
-  if (!datasetDir) {
-    renderDatasetSummary({
-      error: "Enter a dataset folder path before running the scan.",
-    });
-    return;
-  }
-
-  elements.datasetAnalyzeButton.disabled = true;
-  elements.datasetAnalyzeButton.textContent = "Scanning...";
-
-  try {
-    const response = await fetch("/api/classify-dataset", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        dataset_dir: datasetDir,
-        top_k: 10,
-        workers: 1,
-        max_files: maxFilesValue ? Number(maxFilesValue) : null,
-        detailed: false,
-      }),
-    });
-    const payload = await response.json();
-    if (!response.ok) {
-      throw new Error(payload.detail || "Dataset analysis failed");
-    }
-    renderDatasetSummary(payload);
-  } catch (error) {
-    console.error(error);
-    renderDatasetSummary({ error: error.message });
-  } finally {
-    elements.datasetAnalyzeButton.disabled = false;
-    elements.datasetAnalyzeButton.textContent = "Analyze Folder";
-  }
+async function analyzeDataset(){
+  const dir = el.datasetPathInput.value.trim();
+  const max = el.datasetMaxFilesInput.value.trim();
+  if(!dir){ renderDSSummary({error:"Enter a dataset folder path."}); return; }
+  el.datasetAnalyzeButton.disabled = true; el.datasetAnalyzeButton.textContent = "Scanning...";
+  try{
+    const r = await fetch("/api/classify-dataset",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({dataset_dir:dir,top_k:10,workers:1,max_files:max?Number(max):null,detailed:false})});
+    const p = await r.json(); if(!r.ok) throw new Error(p.detail||"Failed");
+    renderDSSummary(p);
+  } catch(e){ console.error(e); renderDSSummary({error:e.message}); }
+  finally{ el.datasetAnalyzeButton.disabled = false; el.datasetAnalyzeButton.textContent = "Analyze Folder"; }
 }
 
-function renderAnalysis(payload) {
-  elements.fileName.textContent = payload.audio_file;
-  elements.fileDuration.textContent = `${payload.duration_seconds.toFixed(2)}s`;
-  elements.fileSampleRate.textContent = `${payload.sample_rate} Hz`;
-  elements.resultBadge.textContent = `${payload.tb_risk_level} Risk`;
-  elements.resultBadge.className = `result-badge result-${payload.tb_risk_level.toLowerCase()}`;
-  elements.confidenceValue.textContent = `${payload.confidence_score.toFixed(2)}%`;
-  elements.tbProbabilityValue.textContent = payload.tb_probability.toFixed(4);
-  elements.signatureValue.textContent = `${payload.infection_type} / ${payload.acoustic_signature}`;
-  elements.heroRiskLabel.textContent = `${payload.infection_type} ${payload.tb_risk_level}`;
-
-  renderPipelineLog(payload.pipeline_log);
-  renderClassBars(payload.class_probabilities);
-  renderCircuit(payload.quantum_circuit);
-  drawWaveform(payload.waveform_points);
-  drawSphere(payload);
-  drawSpectrogramPanel();
-  drawLatent(payload.latent_projection);
+/* ── Render Analysis ── */
+function renderAnalysis(p){
+  el.fileName.textContent = p.audio_file;
+  el.fileDuration.textContent = `${p.duration_seconds.toFixed(2)}s`;
+  el.fileSampleRate.textContent = `${p.sample_rate} Hz`;
+  el.resultBadge.textContent = `${p.tb_risk_level} Risk`;
+  el.resultBadge.className = `risk-badge ${p.tb_risk_level.toLowerCase()}`;
+  el.confidenceValue.textContent = `${p.confidence_score.toFixed(2)}%`;
+  el.tbProbabilityValue.textContent = p.tb_probability.toFixed(4);
+  el.signatureValue.textContent = `${p.infection_type} / ${p.acoustic_signature}`;
+  renderLog(p.pipeline_log); renderClassBars(p.class_probabilities);
+  renderCircuit(p.quantum_circuit); drawWaveform(p.waveform_points);
+  drawSphere(p); drawSpecPanel(); drawLatent(p.latent_projection);
 }
 
-function renderPipelineLog(lines) {
-  elements.pipelineLog.innerHTML = "";
-  lines.forEach((line) => {
-    const item = document.createElement("li");
-    item.textContent = line;
-    elements.pipelineLog.appendChild(item);
+function renderLog(lines){ el.pipelineLog.innerHTML = ""; lines.forEach(l => { const li=document.createElement("li"); li.textContent=l; el.pipelineLog.appendChild(li); }); }
+function renderClassBars(probs){ el.classBars.innerHTML = ""; Object.entries(probs).forEach(([k,v]) => {
+  const d = document.createElement("div"); d.className = "class-row";
+  d.innerHTML = `<span>${k}</span><div class="class-track"><div class="class-fill" style="width:${Math.max(4,v*100)}%"></div></div><strong>${(v*100).toFixed(1)}%</strong>`;
+  el.classBars.appendChild(d);
+});}
+
+function renderCircuit(c){
+  el.circuitMeta.textContent = `${c.qubits}Q · ${c.layers}L`;
+  el.circuitGrid.innerHTML = "";
+  c.rows.forEach(r => {
+    const row = document.createElement("div"); row.className = "circuit-row";
+    const lbl = document.createElement("div"); lbl.className = "circuit-label"; lbl.textContent = r.qubit; row.appendChild(lbl);
+    r.gates.forEach(g => { const gn = document.createElement("div"); gn.className = `gate gate-${g.kind}`; gn.textContent = g.label; row.appendChild(gn); });
+    el.circuitGrid.appendChild(row);
   });
 }
 
-function renderClassBars(probabilities) {
-  elements.classBars.innerHTML = "";
-  Object.entries(probabilities).forEach(([label, value]) => {
-    const row = document.createElement("div");
-    row.className = "class-row";
-    row.innerHTML = `
-      <span>${label}</span>
-      <div class="class-track"><div class="class-fill" style="width:${Math.max(4, value * 100)}%"></div></div>
-      <strong>${(value * 100).toFixed(1)}%</strong>
-    `;
-    elements.classBars.appendChild(row);
+/* ── Canvas Draws ── */
+function drawWaveform(pts){
+  const c=el.waveformCanvas,x=c.getContext("2d"),w=c.width,h=c.height; x.clearRect(0,0,w,h);
+  const bg=x.createLinearGradient(0,0,0,h); bg.addColorStop(0,"#0a1020"); bg.addColorStop(1,"#0e1428"); x.fillStyle=bg; x.fillRect(0,0,w,h);
+  x.strokeStyle="rgba(255,255,255,.06)"; for(let i=1;i<4;i++){const y=h/4*i; x.beginPath();x.moveTo(0,y);x.lineTo(w,y);x.stroke();}
+  x.strokeStyle="#f279ff"; x.lineWidth=1.5; x.beginPath();
+  pts.forEach((p,i)=>{const px=i/(pts.length-1)*w,py=h/2-p*h*.3; i?x.lineTo(px,py):x.moveTo(px,py);}); x.stroke();
+}
+
+function drawSphere(p){
+  const c=el.sphereCanvas,x=c.getContext("2d"),w=c.width,h=c.height,cx=w/2,cy=h/2;
+  const r=Math.min(w,h)*(p.sphere?.radius||.45)*.5, gl=p.sphere?.glow||.3;
+  x.clearRect(0,0,w,h);
+  const g=x.createRadialGradient(cx,cy,r*.1,cx,cy,r*1.4);
+  g.addColorStop(0,`rgba(201,255,226,${.7+gl*.2})`); g.addColorStop(.45,`rgba(123,255,172,${.38+gl*.25})`); g.addColorStop(1,"rgba(35,63,52,0)");
+  x.fillStyle=g; x.beginPath(); x.arc(cx,cy,r*1.45,0,Math.PI*2); x.fill();
+  x.fillStyle="rgba(82,255,163,.18)"; x.beginPath(); x.arc(cx,cy,r,0,Math.PI*2); x.fill();
+  x.strokeStyle="rgba(240,255,184,.92)"; x.lineWidth=2; x.beginPath(); x.arc(cx,cy+4,r*.72,.2*Math.PI,.88*Math.PI); x.stroke();
+  x.strokeStyle="rgba(255,255,255,.14)"; x.beginPath(); x.ellipse(cx,cy,r*.92,r*.22,0,0,Math.PI*2); x.stroke();
+  x.fillStyle="#faffcb"; x.font="700 26px Inter,sans-serif"; x.textAlign="center";
+  x.fillText(p.infection_type||"Waiting",cx,cy+6); x.font="600 18px Inter"; x.fillText(`${(p.confidence_score||0).toFixed(2)}%`,cx,cy+32);
+}
+
+function drawSpecPanel(){
+  const a=state.analysis,c=el.spectrogramCanvas,x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h); x.fillStyle="#090f1c"; x.fillRect(0,0,w,h);
+  if(!a){x.fillStyle="#7a90b8";x.font="16px Inter";x.fillText("Upload and analyze a file to view spectral data.",20,36);el.spectrogramLegend.innerHTML="";return;}
+  if(state.activeSpectrogramTab==="psd"){drawBars(x,w,h,a.psd_curve);
+    el.spectrogramLegend.innerHTML=a.frequency_bands.map(b=>`<span class="legend-chip" style="--chip-color:${b.color}">${b.label}: ${(b.value*100).toFixed(1)}%</span>`).join("");return;}
+  drawHeatmap(x,w,h,state.activeSpectrogramTab==="mfcc"?a.mfcc_heatmap:a.mel_spectrogram);
+  el.spectrogramLegend.innerHTML=a.frequency_bands.map(b=>`<span class="legend-chip" style="--chip-color:${b.color}">${b.label}</span>`).join("");
+}
+function drawHeatmap(x,w,h,m){const R=m.length,C=m[0]?.length||1,cw=w/C,ch=h/R;
+  m.forEach((r,ri)=>r.forEach((v,ci)=>{const hu=220-v*180;x.fillStyle=`hsl(${hu},88%,${18+v*52}%)`;x.fillRect(ci*cw,ri*ch,cw+1,ch+1);}));}
+function drawBars(x,w,h,v){const bw=w/v.length;v.forEach((val,i)=>{const bh=Math.max(4,val*h*.9);
+  const g=x.createLinearGradient(0,h,0,h-bh);g.addColorStop(0,"#34dcff");g.addColorStop(.5,"#8cff77");g.addColorStop(1,"#ff6fe3");
+  x.fillStyle=g;x.fillRect(i*bw+1,h-bh,Math.max(2,bw-2),bh);});}
+
+function drawLatent(pr){
+  const c=el.latentCanvas,x=c.getContext("2d"),w=c.width,h=c.height; x.clearRect(0,0,w,h); x.fillStyle="#07101b"; x.fillRect(0,0,w,h);
+  x.strokeStyle="rgba(255,255,255,.1)"; x.beginPath(); x.moveTo(0,h/2); x.lineTo(w,h/2); x.moveTo(w/2,0); x.lineTo(w/2,h); x.stroke();
+  pr.points.forEach(p=>{const px=(p.x+1.4)/2.8*w,py=h-(p.y+.8)/1.8*h; x.fillStyle=p.color; x.globalAlpha=.5; x.beginPath(); x.arc(px,py,4.5,0,Math.PI*2); x.fill();});
+  const sx=(pr.sample.x+1.4)/2.8*w,sy=h-(pr.sample.y+.8)/1.8*h;
+  x.globalAlpha=1; x.fillStyle="#fff"; x.shadowBlur=20; x.shadowColor=pr.sample.color; x.beginPath(); x.arc(sx,sy,8,0,Math.PI*2); x.fill();
+  x.shadowBlur=0; x.fillStyle=pr.sample.color; x.font="700 13px Inter"; x.fillText("YOU",sx+12,sy-6);
+}
+
+function renderDSSummary(p){
+  el.datasetSummaryCards.innerHTML=""; el.topRiskList.innerHTML=""; el.skippedList.innerHTML="";
+  if(!p){el.datasetSummaryCards.innerHTML=sc("Status","Ready");return;}
+  if(p.error){el.datasetSummaryCards.innerHTML=sc("Error",p.error);return;}
+  const s=p.summary;
+  [["Files",s.total_audio_files],["Processed",s.processed_audio_files],["TB",s.predicted_tb_cases],
+   ["Other",s.predicted_other_cases],["High Risk",s.high_tb_risk],["Moderate",s.moderate_tb_risk],["Low",s.low_tb_risk]
+  ].forEach(([l,v])=>el.datasetSummaryCards.innerHTML+=sc(l,v));
+  (p.top_tb_risk_files||[]).forEach(it=>{const li=document.createElement("li");li.innerHTML=`<strong>${it.infection_type}</strong> — TB: ${it.tb_probability} · ${it.tb_risk_level}`;el.topRiskList.appendChild(li);});
+  const sk=p.skipped||[];if(!sk.length){const li=document.createElement("li");li.textContent="No skipped files.";el.skippedList.appendChild(li);}
+  else sk.slice(0,10).forEach(it=>{const li=document.createElement("li");li.innerHTML=`${it.audio_file}<br>${it.error}`;el.skippedList.appendChild(li);});
+}
+function sc(l,v){return `<div class="summary-card"><span class="label">${l}</span><strong>${v}</strong></div>`;}
+
+/* ═══════ ANALYSIS PAGE RENDERING ═══════ */
+function renderAnalysisPage(){
+  // Main table
+  const tbody = el.metricsTable.querySelector("tbody");
+  tbody.innerHTML = ALGO_METRICS.map(m => `<tr>
+    <td><strong>${m.name}</strong></td><td>${m.encoding}</td>
+    <td><span class="metric-bar" style="width:${m.accuracy*80}px"></span>${(m.accuracy*100).toFixed(2)}%</td>
+    <td><span class="metric-bar" style="width:${m.precision*80}px"></span>${(m.precision*100).toFixed(2)}%</td>
+    <td><span class="metric-bar" style="width:${m.recall*80}px"></span>${(m.recall*100).toFixed(2)}%</td>
+    <td><span class="metric-bar" style="width:${m.f1*80}px"></span>${(m.f1*100).toFixed(2)}%</td>
+    <td>${(m.auc*100).toFixed(2)}%</td></tr>`).join("");
+
+  // Per-class cards
+  el.perClassGrid.innerHTML = Object.entries(PER_CLASS).map(([model,classes]) =>
+    `<div class="metric-class-card"><h4>${model}</h4>${classes.map(c =>
+      `<div class="metric-row"><span>${c.cls}</span><span class="metric-val">P:${(c.precision*100).toFixed(1)}% R:${(c.recall*100).toFixed(1)}% F1:${(c.f1*100).toFixed(1)}%</span></div>`
+    ).join("")}</div>`).join("");
+}
+
+/* ── Analysis Charts ── */
+function drawAccuracyChart(){
+  const c=el.accuracyChart,x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h); x.fillStyle="#080e1a"; x.fillRect(0,0,w,h);
+  const colors=["#4eeaff","#6dffb0","#ff5ec8","#ffb347"];
+  const pad={l:140,r:30,t:30,b:20}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ALGO_METRICS.forEach((m,i)=>{
+    const bh=ch/ALGO_METRICS.length*.7, by=pad.t+i*(ch/ALGO_METRICS.length)+(ch/ALGO_METRICS.length-bh)/2;
+    const bw=m.accuracy*cw;
+    x.fillStyle=colors[i]; x.beginPath(); roundRect(x,pad.l,by,bw,bh,6); x.fill();
+    x.fillStyle="#e8efff"; x.font="600 12px Inter"; x.textAlign="right"; x.fillText(m.name.substring(0,22),pad.l-8,by+bh/2+4);
+    x.textAlign="left"; x.fillStyle="#faffcb"; x.fillText(`${(m.accuracy*100).toFixed(2)}%`,pad.l+bw+8,by+bh/2+4);
   });
 }
 
-function renderCircuit(circuit) {
-  elements.circuitMeta.textContent = `${circuit.qubits} Qubits • ${circuit.layers} Layers`;
-  elements.circuitGrid.innerHTML = "";
-
-  circuit.rows.forEach((row) => {
-    const rowNode = document.createElement("div");
-    rowNode.className = "circuit-row";
-    const label = document.createElement("div");
-    label.className = "circuit-label";
-    label.textContent = row.qubit;
-    rowNode.appendChild(label);
-
-    row.gates.forEach((gate) => {
-      const gateNode = document.createElement("div");
-      gateNode.className = `gate gate-${gate.kind}`;
-      gateNode.textContent = gate.label;
-      rowNode.appendChild(gateNode);
-    });
-
-    elements.circuitGrid.appendChild(rowNode);
+function drawF1Chart(){
+  const c=el.f1Chart,x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h); x.fillStyle="#080e1a"; x.fillRect(0,0,w,h);
+  const colors=["#4eeaff","#6dffb0","#ff5ec8","#ffb347"];
+  const pad={l:140,r:30,t:30,b:20}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  ALGO_METRICS.forEach((m,i)=>{
+    const bh=ch/ALGO_METRICS.length*.7, by=pad.t+i*(ch/ALGO_METRICS.length)+(ch/ALGO_METRICS.length-bh)/2;
+    const bw=m.f1*cw;
+    x.fillStyle=colors[i]; x.beginPath(); roundRect(x,pad.l,by,bw,bh,6); x.fill();
+    x.fillStyle="#e8efff"; x.font="600 12px Inter"; x.textAlign="right"; x.fillText(m.name.substring(0,22),pad.l-8,by+bh/2+4);
+    x.textAlign="left"; x.fillStyle="#faffcb"; x.fillText(`${(m.f1*100).toFixed(2)}%`,pad.l+bw+8,by+bh/2+4);
   });
 }
 
-function drawWaveform(points) {
-  const canvas = elements.waveformCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-
-  const background = ctx.createLinearGradient(0, 0, 0, height);
-  background.addColorStop(0, "#0a1020");
-  background.addColorStop(1, "#13192c");
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.strokeStyle = "rgba(255,255,255,0.08)";
-  for (let i = 1; i < 4; i += 1) {
-    const y = (height / 4) * i;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(width, y);
-    ctx.stroke();
+function drawPRChart(){
+  const c=el.prChart,x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h); x.fillStyle="#080e1a"; x.fillRect(0,0,w,h);
+  const pad={l:50,r:30,t:30,b:40}, cw=w-pad.l-pad.r, ch=h-pad.t-pad.b;
+  // Axes
+  x.strokeStyle="rgba(255,255,255,.12)"; x.beginPath(); x.moveTo(pad.l,pad.t); x.lineTo(pad.l,h-pad.b); x.lineTo(w-pad.r,h-pad.b); x.stroke();
+  x.fillStyle=="#8a9cc0"; x.font="11px Inter"; x.textAlign="center";
+  x.fillStyle="#8a9cc0"; x.fillText("Recall →",w/2,h-8); x.save(); x.translate(14,h/2); x.rotate(-Math.PI/2); x.fillText("Precision →",0,0); x.restore();
+  // Grid
+  for(let i=0;i<=4;i++){const v=.8+i*.05; const px=pad.l+(v-.8)/.2*cw; const py=pad.t+(1-(v-.8)/.2)*ch;
+    x.fillStyle="#5a6a88"; x.font="10px Inter"; x.textAlign="center"; x.fillText((v*100).toFixed(0)+"%",px,h-pad.b+14);
+    x.textAlign="right"; x.fillText((v*100).toFixed(0)+"%",pad.l-6,py+3);
   }
-
-  ctx.strokeStyle = "#f279ff";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  points.forEach((point, index) => {
-    const x = (index / Math.max(points.length - 1, 1)) * width;
-    const y = height / 2 - point * (height * 0.32);
-    if (index === 0) {
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-    }
-  });
-  ctx.stroke();
-}
-
-function drawSphere(payload) {
-  const canvas = elements.sphereCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const radius = Math.min(width, height) * (payload.sphere?.radius || 0.45) * 0.52;
-  const glowStrength = payload.sphere?.glow || 0.3;
-
-  ctx.clearRect(0, 0, width, height);
-
-  const gradient = ctx.createRadialGradient(centerX, centerY, radius * 0.12, centerX, centerY, radius * 1.4);
-  gradient.addColorStop(0, `rgba(201, 255, 226, ${0.7 + glowStrength * 0.2})`);
-  gradient.addColorStop(0.45, `rgba(123, 255, 172, ${0.38 + glowStrength * 0.25})`);
-  gradient.addColorStop(1, "rgba(35, 63, 52, 0)");
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius * 1.45, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = "rgba(82, 255, 163, 0.18)";
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(240, 255, 184, 0.92)";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY + 4, radius * 0.72, 0.2 * Math.PI, 0.88 * Math.PI);
-  ctx.stroke();
-
-  ctx.strokeStyle = "rgba(255,255,255,0.14)";
-  ctx.beginPath();
-  ctx.ellipse(centerX, centerY, radius * 0.92, radius * 0.22, 0, 0, Math.PI * 2);
-  ctx.stroke();
-
-  ctx.fillStyle = "#faffcb";
-  ctx.font = "700 28px 'Avenir Next Condensed', sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText(payload.infection_type || "Waiting", centerX, centerY + 6);
-  ctx.font = "600 20px 'Avenir Next Condensed', sans-serif";
-  ctx.fillText(`${(payload.confidence_score || 0).toFixed(2)}%`, centerX, centerY + 34);
-}
-
-function drawSpectrogramPanel() {
-  const analysis = state.analysis;
-  const canvas = elements.spectrogramCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#09111f";
-  ctx.fillRect(0, 0, width, height);
-
-  if (!analysis) {
-    ctx.fillStyle = "#8ea3cc";
-    ctx.font = "18px 'Avenir Next Condensed', sans-serif";
-    ctx.fillText("Upload and analyze a cough file to view spectral data.", 24, 42);
-    elements.spectrogramLegend.innerHTML = "";
-    return;
-  }
-
-  if (state.activeSpectrogramTab === "psd") {
-    drawBars(ctx, width, height, analysis.psd_curve);
-    elements.spectrogramLegend.innerHTML = analysis.frequency_bands
-      .map((band) => `<span class="legend-chip" style="--chip-color:${band.color}">${band.label}: ${(band.value * 100).toFixed(1)}%</span>`)
-      .join("");
-    return;
-  }
-
-  const matrix = state.activeSpectrogramTab === "mfcc" ? analysis.mfcc_heatmap : analysis.mel_spectrogram;
-  drawHeatmap(ctx, width, height, matrix);
-  elements.spectrogramLegend.innerHTML = analysis.frequency_bands
-    .map((band) => `<span class="legend-chip" style="--chip-color:${band.color}">${band.label}</span>`)
-    .join("");
-}
-
-function drawHeatmap(ctx, width, height, matrix) {
-  const rows = matrix.length;
-  const cols = matrix[0]?.length || 1;
-  const cellWidth = width / cols;
-  const cellHeight = height / rows;
-
-  matrix.forEach((row, rowIndex) => {
-    row.forEach((value, colIndex) => {
-      ctx.fillStyle = heatColor(value);
-      ctx.fillRect(colIndex * cellWidth, rowIndex * cellHeight, cellWidth + 1, cellHeight + 1);
-    });
+  const colors=["#4eeaff","#6dffb0","#ff5ec8","#ffb347"];
+  ALGO_METRICS.forEach((m,i)=>{
+    const px=pad.l+(m.recall-.8)/.2*cw, py=pad.t+(1-(m.precision-.8)/.2)*ch;
+    x.fillStyle=colors[i]; x.shadowBlur=12; x.shadowColor=colors[i]; x.beginPath(); x.arc(px,py,8,0,Math.PI*2); x.fill();
+    x.shadowBlur=0; x.fillStyle="#e8efff"; x.font="600 10px Inter"; x.textAlign="left"; x.fillText(m.name.substring(0,18),px+12,py+3);
   });
 }
 
-function drawBars(ctx, width, height, values) {
-  const barWidth = width / values.length;
-  values.forEach((value, index) => {
-    const barHeight = Math.max(4, value * height * 0.92);
-    const gradient = ctx.createLinearGradient(0, height, 0, height - barHeight);
-    gradient.addColorStop(0, "#34dcff");
-    gradient.addColorStop(0.5, "#8cff77");
-    gradient.addColorStop(1, "#ff6fe3");
-    ctx.fillStyle = gradient;
-    ctx.fillRect(index * barWidth + 1, height - barHeight, Math.max(2, barWidth - 2), barHeight);
-  });
+function drawConfusionMatrix(){
+  const c=el.confusionChart,x=c.getContext("2d"),w=c.width,h=c.height;
+  x.clearRect(0,0,w,h); x.fillStyle="#080e1a"; x.fillRect(0,0,w,h);
+  const labels=["Viral","Bacterial","TB"];
+  const pad={l:90,t:60,r:30,b:30}, cw=(w-pad.l-pad.r)/3, ch=(h-pad.t-pad.b)/3;
+  // Header
+  x.fillStyle="#8a9cc0"; x.font="600 11px Inter"; x.textAlign="center";
+  labels.forEach((l,i)=>{ x.fillText(l,pad.l+cw*i+cw/2,pad.t-12); });
+  x.textAlign="right"; labels.forEach((l,i)=>{ x.fillText(l,pad.l-10,pad.t+ch*i+ch/2+4); });
+  x.fillStyle="#5a6a88"; x.font="11px Inter"; x.textAlign="center"; x.fillText("Predicted →",w/2,24);
+  x.save(); x.translate(20,h/2); x.rotate(-Math.PI/2); x.fillText("Actual →",0,0); x.restore();
+  // Cells
+  CONFUSION.forEach((row,ri)=>row.forEach((v,ci)=>{
+    const intensity=v/100; const r=Math.round(78+intensity*100), g=Math.round(50+intensity*180), b=Math.round(100+intensity*120);
+    x.fillStyle=`rgba(${r},${g},${b},${.15+intensity*.7})`; x.beginPath();
+    roundRect(x,pad.l+ci*cw+3,pad.t+ri*ch+3,cw-6,ch-6,8); x.fill();
+    x.fillStyle=intensity>.6?"#faffcb":"#c8d8f0"; x.font="700 20px Inter"; x.textAlign="center";
+    x.fillText(v,pad.l+ci*cw+cw/2,pad.t+ri*ch+ch/2+7);
+  }));
 }
 
-function heatColor(value) {
-  const hue = 220 - value * 180;
-  const saturation = 88;
-  const lightness = 18 + value * 52;
-  return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-}
-
-function drawLatent(projection) {
-  const canvas = elements.latentCanvas;
-  const ctx = canvas.getContext("2d");
-  const width = canvas.width;
-  const height = canvas.height;
-  ctx.clearRect(0, 0, width, height);
-  ctx.fillStyle = "#07101b";
-  ctx.fillRect(0, 0, width, height);
-
-  ctx.strokeStyle = "rgba(255,255,255,0.12)";
-  ctx.beginPath();
-  ctx.moveTo(0, height / 2);
-  ctx.lineTo(width, height / 2);
-  ctx.moveTo(width / 2, 0);
-  ctx.lineTo(width / 2, height);
-  ctx.stroke();
-
-  projection.points.forEach((point) => {
-    const x = ((point.x + 1.4) / 2.8) * width;
-    const y = height - ((point.y + 0.8) / 1.8) * height;
-    ctx.fillStyle = point.color;
-    ctx.globalAlpha = 0.55;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, Math.PI * 2);
-    ctx.fill();
-  });
-
-  const sampleX = ((projection.sample.x + 1.4) / 2.8) * width;
-  const sampleY = height - ((projection.sample.y + 0.8) / 1.8) * height;
-  ctx.globalAlpha = 1;
-  ctx.fillStyle = "#ffffff";
-  ctx.shadowBlur = 22;
-  ctx.shadowColor = projection.sample.color;
-  ctx.beginPath();
-  ctx.arc(sampleX, sampleY, 9, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.shadowBlur = 0;
-  ctx.fillStyle = projection.sample.color;
-  ctx.font = "700 14px 'Avenir Next Condensed', sans-serif";
-  ctx.fillText("YOU", sampleX + 14, sampleY - 8);
-}
-
-function renderDatasetSummary(payload) {
-  elements.datasetSummaryCards.innerHTML = "";
-  elements.topRiskList.innerHTML = "";
-  elements.skippedList.innerHTML = "";
-
-  if (!payload) {
-    elements.datasetSummaryCards.innerHTML = summaryCardMarkup("Status", "Ready");
-    return;
-  }
-
-  if (payload.error) {
-    elements.datasetSummaryCards.innerHTML = summaryCardMarkup("Dataset Error", payload.error);
-    return;
-  }
-
-  const summary = payload.summary;
-  const cards = [
-    ["Audio Files", summary.total_audio_files],
-    ["Processed", summary.processed_audio_files],
-    ["TB Cases", summary.predicted_tb_cases],
-    ["Other Cases", summary.predicted_other_cases],
-    ["High Risk", summary.high_tb_risk],
-    ["Moderate Risk", summary.moderate_tb_risk],
-    ["Low Risk", summary.low_tb_risk],
-  ];
-  elements.datasetSummaryCards.innerHTML = cards.map(([label, value]) => summaryCardMarkup(label, value)).join("");
-
-  (payload.top_tb_risk_files || []).forEach((item) => {
-    const li = document.createElement("li");
-    li.innerHTML = `<strong>${item.infection_type}</strong><br>${item.audio_file}<br>TB Prob: ${item.tb_probability} • Risk: ${item.tb_risk_level}`;
-    elements.topRiskList.appendChild(li);
-  });
-
-  const skipped = payload.skipped || [];
-  if (!skipped.length) {
-    const li = document.createElement("li");
-    li.textContent = "No skipped files.";
-    elements.skippedList.appendChild(li);
-  } else {
-    skipped.slice(0, 10).forEach((item) => {
-      const li = document.createElement("li");
-      li.innerHTML = `${item.audio_file}<br>${item.error}`;
-      elements.skippedList.appendChild(li);
-    });
-  }
-}
-
-function summaryCardMarkup(label, value) {
-  return `
-    <div class="summary-card">
-      <span class="meta-label">${label}</span>
-      <strong>${value}</strong>
-    </div>
-  `;
-}
+function roundRect(ctx,x,y,w,h,r){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}

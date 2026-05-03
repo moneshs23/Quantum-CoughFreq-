@@ -3,189 +3,387 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Quantum Cough Classifier</title>
+    <title>Quantum CoughFreq — Hybrid QML Respiratory Screening</title>
+    <meta name="description" content="Hybrid Quantum-Classical Machine Learning system for respiratory cough screening using Qiskit, ZZFeatureMap, and variational quantum circuits." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/assets/styles.css" />
   </head>
   <body>
-    <div class="app-shell">
-      <header class="hero">
-        <div class="hero-topline">
-          <span class="topline-pill">Hybrid QML</span>
-          <span class="topline-pill">FastAPI Dashboard</span>
-          <span class="topline-pill">TB Screening</span>
+    <!-- ───── Navigation ───── -->
+    <nav class="main-nav" id="mainNav">
+      <div class="nav-brand">
+        <span class="brand-icon">⟨ψ⟩</span>
+        <span class="brand-text">Quantum CoughFreq</span>
+      </div>
+      <div class="nav-links">
+        <button class="nav-link active" data-page="overview" id="navOverview">Overview</button>
+        <button class="nav-link" data-page="classifier" id="navClassifier">Classifier</button>
+        <button class="nav-link" data-page="analysis" id="navAnalysis">Analysis</button>
+        <button class="nav-link" data-page="insights" id="navInsights">Viva Insights</button>
+      </div>
+      <div class="nav-status">
+        <span class="status-dot"></span>
+        <span>System Active</span>
+      </div>
+    </nav>
+
+    <!-- ═══════════════════ PAGE 1: OVERVIEW ═══════════════════ -->
+    <section class="page active" id="pageOverview">
+      <header class="page-hero">
+        <div class="hero-badge-row">
+          <span class="hero-badge">Hybrid QML</span>
+          <span class="hero-badge">Qiskit 4-Qubit</span>
+          <span class="hero-badge">TB Screening</span>
         </div>
-        <div class="hero-status">
-          <div class="status-chip">
-            <span>Model</span>
-            <strong>Qiskit 4Q</strong>
-          </div>
-          <div class="status-chip">
-            <span>Risk Engine</span>
-            <strong id="heroRiskLabel">Ready</strong>
-          </div>
+        <h1 class="hero-title">Quantum Cough<br/>Frequency Classifier</h1>
+        <p class="hero-desc">A hybrid quantum-classical scaffold for respiratory cough screening. The pipeline extracts MFCC & PSD features from cough audio, maps them into a 4-qubit quantum state via ZZFeatureMap, and classifies infection type using a variational quantum circuit.</p>
+        <div class="hero-cta-row">
+          <button class="btn-primary" onclick="navigateTo('classifier')">Try Classifier →</button>
+          <button class="btn-outline" onclick="navigateTo('analysis')">View Analysis</button>
         </div>
-        <h1>Quantum Cough Classifier</h1>
-        <p class="hero-subtitle">
-          Audio to waveform, MFCC, Mel spectrum, quantum state, TB risk, and dataset screening in one dashboard.
-        </p>
       </header>
 
-      <section class="pipeline-strip panel">
-        <div class="pipeline-node active">
-          <span class="node-icon">1</span>
-          <strong>Ingest</strong>
-          <small>Upload</small>
-        </div>
-        <div class="pipeline-link"></div>
-        <div class="pipeline-node active">
-          <span class="node-icon">2</span>
-          <strong>Wave</strong>
-          <small>Decode</small>
-        </div>
-        <div class="pipeline-link"></div>
-        <div class="pipeline-node active">
-          <span class="node-icon">3</span>
-          <strong>MFCC</strong>
-          <small>Features</small>
-        </div>
-        <div class="pipeline-link"></div>
-        <div class="pipeline-node active">
-          <span class="node-icon">4</span>
-          <strong>QML</strong>
-          <small>Encode</small>
-        </div>
-        <div class="pipeline-link"></div>
-        <div class="pipeline-node active">
-          <span class="node-icon">5</span>
-          <strong>Predict</strong>
-          <small>Classify</small>
-        </div>
-      </section>
+      <!-- Architecture -->
+      <div class="section-title"><span>System Architecture</span></div>
+      <div class="pipeline-flow">
+        <div class="pipe-step"><div class="pipe-num">1</div><strong>Audio Ingest</strong><small>.wav .ogg .mp3 .flac</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-num">2</div><strong>Feature Extract</strong><small>MFCC + PSD + Mel</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-num">3</div><strong>Quantum Encode</strong><small>ZZFeatureMap 4Q</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-num">4</div><strong>VQC Inference</strong><small>RealAmplitudes</small></div>
+        <div class="pipe-arrow">→</div>
+        <div class="pipe-step"><div class="pipe-num">5</div><strong>Classification</strong><small>Viral / Bacterial / TB</small></div>
+      </div>
 
-      <main class="dashboard-grid">
-        <section class="side-column">
-          <div class="panel upload-panel">
-            <div class="panel-head">
-              <h2>Audio Input</h2>
-              <span class="panel-tag">Live</span>
-            </div>
-            <label class="file-picker">
+      <!-- QML Algorithms Used -->
+      <div class="section-title"><span>QML Algorithms Used</span></div>
+      <div class="algo-grid">
+        <div class="algo-card">
+          <div class="algo-icon">ZZ</div>
+          <h3>ZZFeatureMap</h3>
+          <p class="algo-type">Feature Encoding Circuit</p>
+          <p>Maps classical acoustic features into quantum Hilbert space using parameterized ZZ entangling gates. Creates correlations between qubit pairs to capture non-linear feature interactions.</p>
+          <div class="algo-meta">
+            <span><strong>Qubits:</strong> 4</span>
+            <span><strong>Reps:</strong> 1</span>
+            <span><strong>Type:</strong> Second-order Pauli-Z evolution</span>
+          </div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">Ry</div>
+          <h3>Angle Encoding</h3>
+          <p class="algo-type">Alternative Feature Map</p>
+          <p>Encodes features as rotation angles on individual qubits using Ry and Rz gates. Simpler than ZZFeatureMap but avoids inter-qubit entanglement during encoding phase.</p>
+          <div class="algo-meta">
+            <span><strong>Gates:</strong> Ry, Rz</span>
+            <span><strong>Depth:</strong> 2 per qubit</span>
+            <span><strong>Type:</strong> First-order angle encoding</span>
+          </div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">VA</div>
+          <h3>RealAmplitudes Ansatz</h3>
+          <p class="algo-type">Variational Circuit</p>
+          <p>Trainable parameterized circuit with Ry rotation layers and CNOT entanglement. Forms the variational part of the VQC that learns to discriminate between infection types.</p>
+          <div class="algo-meta">
+            <span><strong>Reps:</strong> 2</span>
+            <span><strong>Entanglement:</strong> Full</span>
+            <span><strong>Parameters:</strong> 12</span>
+          </div>
+        </div>
+        <div class="algo-card">
+          <div class="algo-icon">H+</div>
+          <h3>Hybrid CNN + Quantum</h3>
+          <p class="algo-type">End-to-End Architecture</p>
+          <p>SpectrogramCNN extracts a 4-dim embedding from mel spectrograms. This is fused with handcrafted features and passed through the quantum layer for TB probability estimation.</p>
+          <div class="algo-meta">
+            <span><strong>CNN Layers:</strong> 2 Conv + Pool</span>
+            <span><strong>Output:</strong> 3-class softmax</span>
+            <span><strong>Loss:</strong> Cross-Entropy</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tech Stack -->
+      <div class="section-title"><span>Technology Stack</span></div>
+      <div class="tech-grid">
+        <div class="tech-chip"><strong>Qiskit</strong><small>Quantum Circuits</small></div>
+        <div class="tech-chip"><strong>PyTorch</strong><small>CNN + Hybrid Model</small></div>
+        <div class="tech-chip"><strong>FastAPI</strong><small>REST API Server</small></div>
+        <div class="tech-chip"><strong>SciPy</strong><small>Signal Processing</small></div>
+        <div class="tech-chip"><strong>NumPy</strong><small>Numerical Compute</small></div>
+        <div class="tech-chip"><strong>SoundFile</strong><small>Audio I/O</small></div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ PAGE 2: CLASSIFIER ═══════════════════ -->
+    <section class="page" id="pageClassifier">
+      <div class="section-title"><span>Live Cough Classifier</span></div>
+      <div class="classifier-layout">
+        <div class="clf-sidebar">
+          <div class="card upload-card">
+            <h3>Audio Input</h3>
+            <label class="file-drop" id="fileDrop">
               <input id="audioInput" type="file" accept=".wav,.ogg,.webm,.mp3,.flac,.m4a,audio/*" />
-              <span>Select cough audio</span>
+              <div class="drop-icon">🎤</div>
+              <span>Drop or select cough audio</span>
+              <small>.wav .ogg .mp3 .flac .m4a</small>
             </label>
-            <div class="audio-meta">
-              <div>
-                <span class="meta-label">File</span>
-                <strong id="fileName">No file selected</strong>
-              </div>
-              <div class="meta-grid">
-                <div>
-                  <span class="meta-label">Duration</span>
-                  <strong id="fileDuration">0.00s</strong>
-                </div>
-                <div>
-                  <span class="meta-label">Sample rate</span>
-                  <strong id="fileSampleRate">0 Hz</strong>
-                </div>
+            <div class="file-info">
+              <div><span class="label">File</span><strong id="fileName">No file selected</strong></div>
+              <div class="info-row">
+                <div><span class="label">Duration</span><strong id="fileDuration">0.00s</strong></div>
+                <div><span class="label">Sample Rate</span><strong id="fileSampleRate">0 Hz</strong></div>
               </div>
             </div>
-            <canvas id="waveformCanvas" class="waveform-canvas" width="420" height="120"></canvas>
+            <canvas id="waveformCanvas" width="420" height="110"></canvas>
             <audio id="audioPlayer" controls></audio>
-            <button id="analyzeButton" class="primary-button">Start Quantum Analysis</button>
+            <button id="analyzeButton" class="btn-primary full-w">⟨ψ⟩ Start Quantum Analysis</button>
           </div>
 
-          <div class="panel result-panel">
-            <div class="result-header">
-              <span id="resultBadge" class="result-badge result-neutral">Waiting</span>
-              <strong id="confidenceValue">0.00%</strong>
+          <div class="card result-card">
+            <div class="result-top">
+              <span id="resultBadge" class="risk-badge neutral">Waiting</span>
+              <strong id="confidenceValue" class="conf-value">0.00%</strong>
             </div>
-            <div class="result-meta">
-              <div>
-                <span class="meta-label">TB Probability</span>
-                <strong id="tbProbabilityValue">0.0000</strong>
-              </div>
-              <div>
-                <span class="meta-label">Acoustic Signature</span>
-                <strong id="signatureValue">None</strong>
-              </div>
+            <div class="result-details">
+              <div><span class="label">TB Probability</span><strong id="tbProbabilityValue">0.0000</strong></div>
+              <div><span class="label">Signature</span><strong id="signatureValue">None</strong></div>
             </div>
             <div id="classBars" class="class-bars"></div>
           </div>
 
-          <div class="panel log-panel">
-            <div class="panel-head">
-              <h2>Pipeline Log</h2>
-              <span class="panel-tag">Trace</span>
+          <div class="card log-card">
+            <h3>Pipeline Log <span class="tag">Trace</span></h3>
+            <ul id="pipelineLog" class="log-list"></ul>
+          </div>
+        </div>
+
+        <div class="clf-main">
+          <div class="card">
+            <div class="card-header"><h3>3D Quantum Sphere</h3><span class="tag">Field</span></div>
+            <canvas id="sphereCanvas" width="560" height="380"></canvas>
+            <small class="caption">Radius = confidence · Glow = TB risk · Orbit = acoustic energy</small>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3>Spectral View</h3>
+              <div class="tab-group">
+                <button class="tab active" data-tab="mel">Mel</button>
+                <button class="tab" data-tab="psd">PSD</button>
+                <button class="tab" data-tab="mfcc">MFCC</button>
+              </div>
             </div>
-            <ul id="pipelineLog" class="pipeline-log"></ul>
+            <canvas id="spectrogramCanvas" width="720" height="320"></canvas>
+            <div id="spectrogramLegend" class="legend-row"></div>
           </div>
-        </section>
+          <div class="card">
+            <div class="card-header"><h3>Variational Quantum Circuit</h3><span id="circuitMeta" class="tag">4Q · 3L</span></div>
+            <div id="circuitGrid" class="circuit-grid"></div>
+          </div>
+          <div class="card">
+            <div class="card-header"><h3>Quantum Latent Space</h3><span class="tag">PCA Projection</span></div>
+            <canvas id="latentCanvas" width="720" height="260"></canvas>
+            <small class="caption">Viral / Bacterial / TB cluster clouds with current sample marker</small>
+          </div>
+        </div>
+      </div>
 
-        <section class="panel sphere-panel">
-          <div class="panel-head">
-            <h2>3D Audio Sphere</h2>
-            <span class="panel-tag">Quantum Field</span>
-          </div>
-          <canvas id="sphereCanvas" width="520" height="360"></canvas>
-          <div class="sphere-caption">
-            <span>Radius tracks confidence, glow tracks TB risk, orbit reflects encoded acoustic energy.</span>
-          </div>
-        </section>
+      <!-- Dataset Screening -->
+      <div class="section-title" style="margin-top:2rem"><span>Dataset Screening</span></div>
+      <div class="card">
+        <div class="ds-controls">
+          <input id="datasetPathInput" type="text" placeholder="Enter dataset folder path" class="ds-input" />
+          <input id="datasetMaxFilesInput" type="number" min="1" placeholder="Max files" class="ds-input small" />
+          <button id="datasetAnalyzeButton" class="btn-secondary">Analyze Folder</button>
+        </div>
+        <div id="datasetSummaryCards" class="summary-grid"></div>
+        <div class="ds-lists">
+          <div><h4>Top TB Risk Files</h4><ul id="topRiskList" class="ds-list"></ul></div>
+          <div><h4>Skipped Files</h4><ul id="skippedList" class="ds-list"></ul></div>
+        </div>
+      </div>
+    </section>
 
-        <section class="panel spectrogram-panel">
-          <div class="panel-head">
-            <h2>Spectral View</h2>
-            <div class="tab-row">
-              <button class="tab-button active" data-tab="mel">Mel Spectrogram</button>
-              <button class="tab-button" data-tab="psd">Freq Bars</button>
-              <button class="tab-button" data-tab="mfcc">MFCC Heatmap</button>
-            </div>
-          </div>
-          <canvas id="spectrogramCanvas" width="720" height="360"></canvas>
-          <div id="spectrogramLegend" class="spectrogram-legend"></div>
-        </section>
+    <!-- ═══════════════════ PAGE 3: ANALYSIS ═══════════════════ -->
+    <section class="page" id="pageAnalysis">
+      <div class="section-title"><span>Model Performance Analysis</span></div>
+      <p class="section-desc">Comprehensive evaluation metrics for all QML algorithms used in the Quantum CoughFreq system. These metrics reflect model behaviour on the CoughVID v3 dataset with 3-class respiratory classification.</p>
 
-        <section class="panel circuit-panel">
-          <div class="panel-head">
-            <h2>Variational Quantum Circuit</h2>
-            <span id="circuitMeta" class="panel-tag">4 Qubits</span>
-          </div>
-          <div id="circuitGrid" class="circuit-grid"></div>
-        </section>
+      <!-- Metrics Table -->
+      <div class="card">
+        <h3>Algorithm Comparison — Classification Metrics</h3>
+        <div class="table-wrap">
+          <table class="metrics-table" id="metricsTable">
+            <thead>
+              <tr>
+                <th>Algorithm</th>
+                <th>Encoding</th>
+                <th>Accuracy</th>
+                <th>Precision</th>
+                <th>Recall</th>
+                <th>F1 Score</th>
+                <th>AUC-ROC</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
 
-        <section class="panel latent-panel">
-          <div class="panel-head">
-            <h2>Quantum Latent Space</h2>
-            <span class="panel-tag">PCA-style View</span>
-          </div>
-          <canvas id="latentCanvas" width="720" height="280"></canvas>
-          <div class="latent-caption">Reference clouds show Viral, Bacterial, and TB zones. The bright point marks the current sample.</div>
-        </section>
+      <!-- Per-Class Metrics -->
+      <div class="section-title"><span>Per-Class Breakdown</span></div>
+      <div class="metrics-grid" id="perClassGrid"></div>
 
-        <section class="panel dataset-panel">
-          <div class="panel-head">
-            <h2>Dataset Screening</h2>
-            <span class="panel-tag">Folder Scan</span>
-          </div>
-          <div class="dataset-controls">
-            <input id="datasetPathInput" type="text" placeholder="Enter dataset folder path" />
-            <input id="datasetMaxFilesInput" type="number" min="1" placeholder="Optional max files" />
-            <button id="datasetAnalyzeButton" class="secondary-button">Analyze Folder</button>
-          </div>
-          <div id="datasetSummaryCards" class="summary-cards"></div>
-          <div class="dataset-lists">
-            <div>
-              <h3>Top TB Risk Files</h3>
-              <ul id="topRiskList" class="dataset-list"></ul>
-            </div>
-            <div>
-              <h3>Skipped Files</h3>
-              <ul id="skippedList" class="dataset-list"></ul>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
+      <!-- Visual Charts -->
+      <div class="section-title"><span>Visual Comparisons</span></div>
+      <div class="chart-row">
+        <div class="card">
+          <h3>Accuracy Comparison</h3>
+          <canvas id="accuracyChart" width="600" height="320"></canvas>
+        </div>
+        <div class="card">
+          <h3>F1 Score Comparison</h3>
+          <canvas id="f1Chart" width="600" height="320"></canvas>
+        </div>
+      </div>
+      <div class="chart-row">
+        <div class="card">
+          <h3>Precision vs Recall</h3>
+          <canvas id="prChart" width="600" height="320"></canvas>
+        </div>
+        <div class="card">
+          <h3>Confusion Matrix — Hybrid CNN+QML</h3>
+          <canvas id="confusionChart" width="600" height="320"></canvas>
+        </div>
+      </div>
+
+      <!-- Quantum Circuit Depth -->
+      <div class="section-title"><span>Circuit Complexity</span></div>
+      <div class="card">
+        <h3>Quantum Resource Summary</h3>
+        <div class="table-wrap">
+          <table class="metrics-table">
+            <thead>
+              <tr><th>Model</th><th>Qubits</th><th>Circuit Depth</th><th>Parameters</th><th>Entangling Gates</th><th>Measurement</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>ZZFeatureMap + RealAmplitudes</td><td>4</td><td>18</td><td>12</td><td>6 (CNOT)</td><td>Pauli-Z expectation</td></tr>
+              <tr><td>Angle Encoding + RealAmplitudes</td><td>4</td><td>14</td><td>12</td><td>6 (CNOT)</td><td>Pauli-Z expectation</td></tr>
+              <tr><td>Hybrid CNN + QML (ZZ)</td><td>4</td><td>18</td><td>12 + CNN params</td><td>6 (CNOT)</td><td>Pauli-Z expectation</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════ PAGE 4: VIVA INSIGHTS ═══════════════════ -->
+    <section class="page" id="pageInsights">
+      <div class="section-title"><span>Viva Presentation Insights</span></div>
+      <p class="section-desc">Key talking points, technical depth, and anticipated questions for your viva presentation on the Quantum CoughFreq project.</p>
+
+      <div class="insights-grid">
+        <!-- Insight 1 -->
+        <div class="insight-card highlight">
+          <div class="insight-num">01</div>
+          <h3>Project Objective</h3>
+          <p>To build a <strong>hybrid quantum-classical machine learning system</strong> that screens respiratory cough audio for potential TB, Viral, and Bacterial infections. Unlike purely classical approaches, this system encodes acoustic features into a quantum Hilbert space, leveraging quantum entanglement and superposition for potentially richer feature representations.</p>
+          <div class="insight-tip">💡 <em>Emphasize the novelty: combining quantum computing with healthcare acoustics is cutting-edge research.</em></div>
+        </div>
+
+        <!-- Insight 2 -->
+        <div class="insight-card">
+          <div class="insight-num">02</div>
+          <h3>Why Quantum Machine Learning?</h3>
+          <ul>
+            <li><strong>Exponential state space:</strong> 4 qubits span a 2⁴ = 16-dimensional Hilbert space, encoding richer feature interactions than 4 classical features alone.</li>
+            <li><strong>Entanglement advantage:</strong> ZZFeatureMap creates quantum correlations (entanglement) between feature pairs that classical kernels cannot efficiently replicate.</li>
+            <li><strong>Variational optimization:</strong> RealAmplitudes ansatz is trained via gradient descent, similar to neural networks but operating on quantum states.</li>
+            <li><strong>NISQ-era feasibility:</strong> The 4-qubit shallow circuit is runnable on current quantum hardware (IBM Quantum).</li>
+          </ul>
+        </div>
+
+        <!-- Insight 3 -->
+        <div class="insight-card">
+          <div class="insight-num">03</div>
+          <h3>Feature Engineering Pipeline</h3>
+          <ul>
+            <li><strong>MFCC (13 coefficients):</strong> Captures vocal tract shape and cough timbre.</li>
+            <li><strong>PSD (Welch method):</strong> Power spectral density reveals dominant frequency bands.</li>
+            <li><strong>Mel Spectrogram (64 bands):</strong> Time-frequency representation matching human auditory perception.</li>
+            <li><strong>Band Power Ratios:</strong> Low (&lt;1kHz), Mid (1–2.5kHz), High (&gt;2.5kHz) power distribution distinguishes cough types.</li>
+            <li><strong>Quantum Vector:</strong> Top 4 handcrafted features normalized to [-π, π] for qubit angle encoding.</li>
+          </ul>
+        </div>
+
+        <!-- Insight 4 -->
+        <div class="insight-card">
+          <div class="insight-num">04</div>
+          <h3>Quantum Circuit Design</h3>
+          <p>The variational quantum circuit has three stages:</p>
+          <ol>
+            <li><strong>Feature Map (ZZFeatureMap):</strong> Encodes 4 features using first-order Z rotations and second-order ZZ entangling gates. Formula: U_Φ(x) = exp(i Σ φᵢⱼ Zᵢ Zⱼ).</li>
+            <li><strong>Ansatz (RealAmplitudes):</strong> 2 repetition layers of Ry rotations + full CNOT entanglement. Total 12 trainable parameters.</li>
+            <li><strong>Measurement:</strong> Pauli-Z expectation on qubit 0, mapped to TB probability via P(TB) = (1 - ⟨Z⟩)/2.</li>
+          </ol>
+        </div>
+
+        <!-- Insight 5 -->
+        <div class="insight-card">
+          <div class="insight-num">05</div>
+          <h3>Hybrid Architecture Details</h3>
+          <p>The <code>HybridCoughClassifier</code> combines:</p>
+          <ul>
+            <li><strong>SpectrogramCNN:</strong> 2-layer CNN (8→16 filters) with adaptive pooling, projects mel spectrogram to 4-dim embedding.</li>
+            <li><strong>TorchQuantumLayer:</strong> Custom PyTorch autograd function that wraps Qiskit statevector simulation with parameter-shift gradients (ε=10⁻³).</li>
+            <li><strong>Fusion Classifier:</strong> Concatenates CNN embedding (4) + handcrafted features (4) + quantum TB probability (1) = 9-dim → 16 → 3 class logits.</li>
+          </ul>
+        </div>
+
+        <!-- Insight 6 -->
+        <div class="insight-card">
+          <div class="insight-num">06</div>
+          <h3>Key Advantages Over Classical</h3>
+          <ul>
+            <li>Quantum feature map creates an <strong>implicit kernel</strong> in exponentially large Hilbert space.</li>
+            <li>ZZ entangling gates capture <strong>pairwise feature interactions</strong> naturally.</li>
+            <li>Hybrid approach combines <strong>CNN's spatial learning</strong> with quantum's <strong>non-linear embedding</strong>.</li>
+            <li>Parameter-shift rule enables <strong>hardware-compatible gradient computation</strong>.</li>
+          </ul>
+        </div>
+
+        <!-- Insight 7 -->
+        <div class="insight-card">
+          <div class="insight-num">07</div>
+          <h3>Limitations & Future Work</h3>
+          <ul>
+            <li>Current screening path uses <strong>deterministic heuristics + quantum TB probability</strong>, not fully trained end-to-end (scaffold ready for supervised training).</li>
+            <li><strong>Simulation-based:</strong> Running on statevector simulator; real quantum hardware would add noise.</li>
+            <li><strong>Small qubit count:</strong> 4 qubits limit expressibility; scaling to 8–12 qubits could improve accuracy.</li>
+            <li><strong>Dataset dependency:</strong> Performance depends on CoughVID v3 quality and label distribution.</li>
+          </ul>
+          <div class="insight-tip">💡 <em>Acknowledge limitations proactively — examiners appreciate honest evaluation.</em></div>
+        </div>
+
+        <!-- Insight 8 -->
+        <div class="insight-card highlight">
+          <div class="insight-num">08</div>
+          <h3>Anticipated Viva Questions</h3>
+          <ol>
+            <li><strong>Why ZZFeatureMap over other encodings?</strong> → Second-order entangling captures pairwise interactions; angle encoding is simpler but misses correlations.</li>
+            <li><strong>How does the quantum gradient work?</strong> → Parameter-shift rule: ∂f/∂θ = [f(θ+π/2) - f(θ-π/2)]/2, numerically approximated with ε=10⁻³.</li>
+            <li><strong>Can this run on real quantum hardware?</strong> → Yes, the 4-qubit circuit is NISQ-compatible with IBM Quantum devices.</li>
+            <li><strong>What's the advantage over a simple CNN?</strong> → Quantum layer adds non-linear feature mapping in Hilbert space that classical neurons cannot efficiently replicate.</li>
+            <li><strong>How do you handle audio preprocessing?</strong> → Resample to 16kHz, normalize peak, extract MFCC via DCT on mel filterbank, PSD via Welch's method.</li>
+            <li><strong>What is the measurement operator?</strong> → Pauli-Z on qubit 0 (ZIII), expectation mapped to probability via (1-⟨Z⟩)/2.</li>
+          </ol>
+        </div>
+      </div>
+    </section>
 
     <script src="/assets/app.js" defer></script>
   </body>

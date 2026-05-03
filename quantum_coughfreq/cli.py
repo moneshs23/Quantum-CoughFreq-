@@ -54,6 +54,9 @@ def predict_command(audio_file: str, json_output: bool = False) -> int:
         return 1
 
     service = CoughDiagnosticService()
+    print(f"\n[INFO] Starting Quantum CoughFreq Prediction...")
+    print(f"[INFO] Analyzing audio file: {audio_path.name}")
+    print(f"[INFO] Extracting features and running quantum estimator...\n")
     prediction = service.predict(audio_path.as_posix())
 
     payload = {
@@ -92,6 +95,10 @@ def classify_dataset_command(
     workers: int = DEFAULT_WORKERS,
     max_files: Optional[int] = None,
 ) -> int:
+    print(f"\n[INFO] Initializing dataset classification...")
+    print(f"[INFO] Target Directory: {dataset_dir}")
+    print(f"[INFO] Workers: {workers}")
+    print(f"[INFO] Searching and analyzing files, please wait...\n")
     try:
         payload = classify_dataset(
             dataset_dir=dataset_dir,

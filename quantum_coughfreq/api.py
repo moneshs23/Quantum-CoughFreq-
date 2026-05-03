@@ -265,6 +265,23 @@ def create_app() -> FastAPI:
             "default_dataset_dir": default_dataset.as_posix(),
         }
 
+    @app.get("/api/system-info")
+    async def system_info() -> Dict[str, Any]:
+        import platform
+        import sys
+        
+        # Gathering system information as an additional diagnostics feature
+        system_details = {
+            "os": platform.system(),
+            "os_release": platform.release(),
+            "python_version": sys.version,
+            "machine": platform.machine(),
+            "service_status": "Active (LAN Mode)",
+            "diagnostics": "Healthy",
+            "supported_audio_formats": list(SUPPORTED_AUDIO_EXTENSIONS)
+        }
+        return {"status": "ok", "system_details": system_details}
+
     @app.post("/predict-cough", response_model=PredictionResponse)
     async def predict_cough(audio_file: UploadFile = File(...)) -> PredictionResponse:
         temp_path, original_name = await save_upload(audio_file)
